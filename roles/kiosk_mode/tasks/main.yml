@@ -12,9 +12,11 @@
     auto_attach: true
 
 - name: Install Gnome Desktop Environment
-  ansible.builtin.package:
+  ansible.builtin.dnf:
     name:
       - "@Server With GUI"
+    skip_broken: true
+    nobest: true
     state: present
 
 - name: Create gdm configuration for kiosk kiosk_mode
