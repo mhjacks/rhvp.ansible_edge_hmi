@@ -1,5 +1,4 @@
 ---
 collections:
-  - name: containers.podman
-  - name: community.general
-    version: "~>11.0.0"
+  - containers.podman
+  - community.general
