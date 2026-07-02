@@ -1,6 +1,13 @@
 ---
 - name: Basic connectivity test
-  hosts: all
-  gather_facts: true
-  become: true
-  roles: []
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Output collections
+      ansible.builtin.command: ansible-galaxy collection list
+      register: output
+
+    - name: Show output
+      ansible.builtin.debug:
+        var: output
