@@ -10,4 +10,4 @@
 
     - name: Show output
       ansible.builtin.debug:
-        var: output
+        var: output.stdout_lines
