@@ -3,7 +3,7 @@
   hosts: all
   become: true
   vars:
-    systemd_units_dir: /etc/systemd/system/
+    quadlet_units_dir: /etc/containers/systemd/
     service_name: inductive-automation-ignition
     container_state: installed
     container_image: docker.io/inductiveautomation/ignition

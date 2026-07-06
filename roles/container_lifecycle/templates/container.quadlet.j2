@@ -1,0 +1,28 @@
+# Ansible-managed rootful Podman Quadlet unit
+
+[Unit]
+Description={{ service_name }} (Ansible Managed Fedora IoT Podman container service)
+Documentation=man:podman-systemd.unit(5)
+Wants=network.target
+After=network-online.target
+
+[Container]
+ContainerName=afiot-{{ service_name }}
+Image={{ container_image }}:{{ container_tag }}
+{% if container_port_mapping is defined and container_port_mapping | length > 0 %}
+PublishPort={{ container_port_mapping }}
+{% endif %}
+{% if container_extra_params is defined and container_extra_params | length > 0 %}
+PodmanArgs={{ container_extra_params }}
+{% endif %}
+{% if container_healthcheck_cmd is defined and container_healthcheck_cmd | length > 0 %}
+HealthCmd={{ container_healthcheck_cmd }}
+HealthInterval={{ container_healthcheck_interval }}
+HealthRetries={{ container_healthcheck_retries }}
+{% endif %}
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target default.target
