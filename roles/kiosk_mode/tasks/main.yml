@@ -8,7 +8,6 @@
     kiosk_packages:
       - gnome-kiosk
       - gnome-kiosk-script-session
-    kiosk_session: gnome-kiosk-script
     kiosk_script_name: gnome-kiosk-script
   when: ansible_facts['distribution_major_version'] | int >= 9
 
@@ -42,6 +41,27 @@
     name: "{{ kiosk_packages + kiosk_runtime_packages }}"
     state: present
   notify: Reboot
+
+- name: Check for split wayland kiosk session desktop file
+  ansible.builtin.stat:
+    path: /usr/share/wayland-sessions/gnome-kiosk-script-wayland.desktop
+  register: kiosk_wayland_session
+  when: ansible_facts['distribution_major_version'] | int >= 9
+
+- name: Check for legacy kiosk session desktop file
+  ansible.builtin.stat:
+    path: /usr/share/wayland-sessions/gnome-kiosk-script.desktop
+  register: kiosk_legacy_session
+  when: ansible_facts['distribution_major_version'] | int >= 9
+
+- name: Select kiosk session for RHEL 9 and newer
+  ansible.builtin.set_fact:
+    kiosk_session: >-
+      {{
+        'gnome-kiosk-script-wayland' if kiosk_wayland_session.stat.exists
+        else 'gnome-kiosk-script'
+      }}
+  when: ansible_facts['distribution_major_version'] | int >= 9
 
 - name: Create gdm configuration for kiosk kiosk_mode
   ansible.builtin.template:
@@ -144,6 +164,7 @@
     - /home/kiosk/.dmrc
     - /home/kiosk/.xsession
     - /home/kiosk/.Xclients
+    - /home/kiosk/.config/dconf/user
 
 - name: Create shell script to start firefox
   ansible.builtin.template:
