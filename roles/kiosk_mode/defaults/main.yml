@@ -1,4 +1,17 @@
 ---
 # defaults file for kiosk_mode
 kiosk_port: 8088
-kiosk_package: gnome-session-kiosk-session
+
+# RHEL 8 kiosk packages and session configuration.
+kiosk_packages:
+  - gnome-session-kiosk-session
+kiosk_session: com.redhat.Kiosk
+kiosk_script_name: redhat-kiosk
+
+kiosk_runtime_packages:
+  - firefox
+  - curl
+
+# subscription-manager attach was removed in RHEL 9.5+/10 and Fedora 41+.
+# Registration alone is sufficient with Simple Content Access (SCA).
+rhsm_auto_attach: false

@@ -1,7 +1,7 @@
 ---
 # defaults file for container_lifecycle
 
-systemd_units_dir: /etc/systemd/system/
+quadlet_units_dir: /etc/containers/systemd/
 
 service_name: ""
 

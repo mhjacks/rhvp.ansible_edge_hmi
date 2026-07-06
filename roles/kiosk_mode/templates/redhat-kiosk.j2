@@ -1,0 +1,22 @@
+#!/bin/sh
+
+kiosk_page="http://localhost:{{ kiosk_port }}"
+
+wait_for_service() {
+	while true; do
+		if /usr/bin/curl -sf --connect-timeout 2 "$kiosk_page" >/dev/null 2>&1; then
+			return 0
+		fi
+		sleep 1
+	done
+}
+
+while true; do
+	wait_for_service
+{% if ansible_facts['distribution_major_version'] | int >= 9 %}
+	/usr/bin/firefox --kiosk "$kiosk_page"
+{% else %}
+	/usr/bin/firefox --kiosk "$kiosk_page" --display=:0
+{% endif %}
+	sleep 1
+done
