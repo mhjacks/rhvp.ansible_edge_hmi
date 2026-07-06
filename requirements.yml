@@ -1,8 +1,5 @@
 ---
 collections:
-  - infra.aap_configuration
-  #  - ansible.platform
-  # - ansible.controller
   - containers.podman
   - name: community.general
     version: "<=11.0.0"
