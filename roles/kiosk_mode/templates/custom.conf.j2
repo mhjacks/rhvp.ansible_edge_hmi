@@ -1,0 +1,16 @@
+# GDM configuration storage
+
+[daemon]
+AutomaticLoginEnable=True
+AutomaticLogin=kiosk
+{% if ansible_facts['distribution_major_version'] | int < 9 %}
+WaylandEnable=false
+{% endif %}
+
+[security]
+
+[xdmcp]
+
+[chooser]
+
+[debug]

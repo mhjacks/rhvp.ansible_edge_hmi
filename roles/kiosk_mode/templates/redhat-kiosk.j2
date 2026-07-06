@@ -7,7 +7,11 @@ while true; do
 	rc=$?
 
 	if [ "$rc" == "0" ]; then
-        /usr/bin/firefox --kiosk $kiosk_page --display=:0
+{% if ansible_facts['distribution_major_version'] | int >= 9 %}
+		/usr/bin/firefox --kiosk "$kiosk_page"
+{% else %}
+		/usr/bin/firefox --kiosk "$kiosk_page" --display=:0
+{% endif %}
 	else
 		sleep 1
 	fi

@@ -31,12 +31,24 @@
     nobest: true
     state: present
 
+- name: Install kiosk session packages
+  ansible.builtin.dnf:
+    name: "{{ kiosk_packages + kiosk_runtime_packages }}"
+    state: present
+  notify: Reboot
+
 - name: Create gdm configuration for kiosk kiosk_mode
   ansible.builtin.template:
-    src: custom.conf
+    src: custom.conf.j2
     dest: /etc/gdm/custom.conf
     mode: "0644"
   notify: Reboot
+
+- name: Ensure kiosk group exists
+  ansible.builtin.group:
+    name: kiosk
+    gid: 2000
+    state: present
 
 - name: Add the user 'kiosk'
   ansible.builtin.user:
@@ -45,16 +57,19 @@
     state: present
     shell: /bin/bash
     uid: 2000
-    group: users
+    group: kiosk
+    groups: users
     create_home: true
     skeleton: true
   notify: Reboot
 
-- name: Configure session for kiosk username /var/lib/AccountsService/users/kiosk
-  ansible.builtin.template:
-    src: kiosk.conf.j2
-    dest: /var/lib/AccountsService/users/kiosk
-    mode: "0600"
+- name: Clear kiosk user password for GDM autologin
+  ansible.builtin.command:
+    cmd: passwd -d kiosk
+  register: kiosk_password_clear
+  changed_when: kiosk_password_clear.rc == 0
+  failed_when: kiosk_password_clear.rc != 0
+  notify: Reboot
 
 - name: Change default target to graphical.target
   ansible.builtin.file:
@@ -63,60 +78,90 @@
     state: link
   notify: Reboot
 
+- name: Enable and start GDM
+  ansible.builtin.systemd:
+    name: gdm
+    enabled: true
+    state: started
+  notify: Reboot
+
 - name: Permit traffic in default zone for https service
   ansible.posix.firewalld:
     service: https
     permanent: true
     state: enabled
 
-- name: Install kiosk session packages
-  ansible.builtin.dnf:
-    name: "{{ kiosk_packages }}"
-    state: present
-  notify: Reboot
-
-- name: Create directory local bin for kiosk mode
+- name: Create kiosk user directories
   ansible.builtin.file:
-    path: /home/kiosk/.local/bin
+    path: "{{ item }}"
     state: directory
     mode: "0755"
     owner: kiosk
-    group: users
+    group: kiosk
+  loop:
+    - /home/kiosk/.local/bin
+    - /home/kiosk/Desktop
+    - /home/kiosk/.config
+    - /home/kiosk/.cache
+    - /home/kiosk/.mozilla
+    - /home/kiosk/.local/state
   notify: Reboot
 
-- name: Create directory local bin for kiosk mode
+- name: Disable GNOME initial setup for kiosk user
   ansible.builtin.file:
-    path: /home/kiosk/Desktop
-    state: directory
-    mode: "0755"
-    owner: kiosk
-    group: users
-  notify: Reboot
-
-- name: Create config directory to disable welcome screen
-  ansible.builtin.file:
-    path: /home/kiosk/.config/
-    state: directory
-    mode: "0755"
-    owner: kiosk
-    group: users
-  notify: Reboot
-
-- name: Create file to disable setup screens
-  ansible.builtin.file:
-    path: /home/kiosk/.config/gnome-initial-setup-done
+    path: "{{ item }}"
     state: touch
-    mode: "0755"
+    mode: "0644"
     owner: kiosk
-    group: users
+    group: kiosk
+  loop:
+    - /home/kiosk/.config/gnome-initial-setup-done
+    - /home/kiosk/.local/state/gnome-initial-setup-done
+
+- name: Disable GNOME initial setup globally
+  ansible.builtin.template:
+    src: gnome-initial-setup.j2
+    dest: /etc/dconf/db/local.d/00-gnome-initial-setup
+    mode: "0644"
+  notify: Reboot
+
+- name: Apply dconf changes
+  ansible.builtin.command:
+    cmd: dconf update
+  changed_when: true
+
+- name: Remove persisted desktop session overrides for kiosk user
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /home/kiosk/.dmrc
+    - /home/kiosk/.xsession
+    - /home/kiosk/.Xclients
 
 - name: Create shell script to start firefox
   ansible.builtin.template:
     dest: "/home/kiosk/.local/bin/{{ kiosk_script_name }}"
-    src: files/redhat-kiosk.j2
+    src: redhat-kiosk.j2
     mode: "0755"
     owner: kiosk
-    group: users
+    group: kiosk
+  notify: Reboot
+
+- name: Configure session for kiosk username /var/lib/AccountsService/users/kiosk
+  ansible.builtin.template:
+    src: kiosk.conf.j2
+    dest: /var/lib/AccountsService/users/kiosk
+    mode: "0600"
+  notify: Reboot
+
+- name: Ensure kiosk home directory ownership
+  ansible.builtin.file:
+    path: /home/kiosk
+    state: directory
+    owner: kiosk
+    group: kiosk
+    recurse: true
   notify: Reboot
 
 - name: Flush handlers (will reboot if needed)

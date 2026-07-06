@@ -8,6 +8,10 @@ kiosk_packages:
 kiosk_session: com.redhat.Kiosk
 kiosk_script_name: redhat-kiosk
 
+kiosk_runtime_packages:
+  - firefox
+  - curl
+
 # subscription-manager attach was removed in RHEL 9.5+/10 and Fedora 41+.
 # Registration alone is sufficient with Simple Content Access (SCA).
 rhsm_auto_attach: false
