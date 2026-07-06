@@ -3,6 +3,15 @@
 - name: Gather facts
   ansible.builtin.setup:
 
+- name: Select kiosk packages for RHEL 9 and newer
+  ansible.builtin.set_fact:
+    kiosk_packages:
+      - gnome-kiosk
+      - gnome-kiosk-script-session
+    kiosk_session: gnome-kiosk-script
+    kiosk_script_name: gnome-kiosk-script
+  when: ansible_facts['distribution_major_version'] | int >= 9
+
 - name: Ensure hostname set
   ansible.builtin.hostname:
     name: "{{ inventory_hostname.split('.')[0] }}"
@@ -42,8 +51,8 @@
   notify: Reboot
 
 - name: Configure session for kiosk username /var/lib/AccountsService/users/kiosk
-  ansible.builtin.copy:
-    src: files/kiosk.conf.j2
+  ansible.builtin.template:
+    src: kiosk.conf.j2
     dest: /var/lib/AccountsService/users/kiosk
     mode: "0600"
 
@@ -60,14 +69,9 @@
     permanent: true
     state: enabled
 
-- name: Vary kiosk package for RHEL9
-  ansible.builtin.set_fact:
-    kiosk_package: gnome-kiosk-script-session
-  when: ansible_distribution_major_version == "9"
-
-- name: Install yum install gnome-session-kiosk-session
-  ansible.builtin.yum:
-    name: "{{ kiosk_package }}"
+- name: Install kiosk session packages
+  ansible.builtin.dnf:
+    name: "{{ kiosk_packages }}"
     state: present
   notify: Reboot
 
@@ -108,7 +112,7 @@
 
 - name: Create shell script to start firefox
   ansible.builtin.template:
-    dest: /home/kiosk/.local/bin/redhat-kiosk
+    dest: "/home/kiosk/.local/bin/{{ kiosk_script_name }}"
     src: files/redhat-kiosk.j2
     mode: "0755"
     owner: kiosk
