@@ -23,6 +23,12 @@
     password: "{{ rhsm_password }}"
     auto_attach: "{{ rhsm_auto_attach }}"
 
+- name: Upgrade all packages
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    update_cache: true
+
 - name: Install Gnome Desktop Environment
   ansible.builtin.dnf:
     name:
